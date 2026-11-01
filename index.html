@@ -958,23 +958,46 @@ function showResult(){
       canvas.toBlob(function(blob){
         btn.removeAttribute('data-busy');
         if (!blob){ msg.textContent = '圖片產生失敗，請再試一次'; return; }
+        var fname = '女同人格測驗-' + r.name + '-限動.png';
+
+        /* plain-browser fallback: works on a normal website (GitHub Pages,
+           any host) where there's no Claude artifact runtime — a real
+           <a download> + blob URL click triggers the browser's own save.
+           Inside the Claude artifact sandbox this kind of direct download
+           is blocked, which is what the window.claude.use('downloads')
+           path above is for; outside it, this is the normal, working way. */
+        function browserDownload(){
+          try {
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = fname;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+            msg.textContent = '已下載';
+          } catch (e){
+            msg.textContent = '下載失敗，請改用截圖';
+          }
+        }
+
         if (!window.claude || typeof window.claude.use !== 'function'){
-          msg.textContent = '此檢視環境不支援下載，請改用截圖';
+          browserDownload();
           return;
         }
         window.claude.use('downloads').then(function(downloads){
           if (!downloads){
-            msg.textContent = '此檢視環境不支援下載，請改用截圖';
+            browserDownload();
             return;
           }
-          var fname = '女同人格測驗-' + r.name + '-限動.png';
           downloads.save({ filename: fname, data: blob }).then(function(){
             msg.textContent = '已儲存';
           }).catch(function(err){
             if (err && err.code === 'declined'){ msg.textContent = ''; }
             else { msg.textContent = '下載未完成，請再試一次'; }
           });
-        });
+        }).catch(function(){ browserDownload(); });
       }, 'image/png');
     }).catch(function(){
       btn.removeAttribute('data-busy');
