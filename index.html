@@ -1,0 +1,1007 @@
+<title>女同人格測驗</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700;900&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* layout concept: one-screen "app" — start card, a question stage with a
+   back/progress rail, and a result stage with a hexagon trait-spectrum
+   chart, swapped via [hidden]; flat neutral paper ground, no gendered
+   decoration, a single earthy accent instead of a pink/pastel one */
+:root{
+  --bg:        #f5f3ee;
+  --surface:   #ffffff;
+  --surface-2: #eae6dd;
+  --ink:       #211f1c;
+  --ink-soft:  #6b665d;
+  --line:      rgba(33,31,28,0.12);
+  --accent:    #3c6e63;
+  --accent-2:  #a98f4b;
+  --accent-soft: rgba(60,110,99,0.12);
+
+  --display: "Noto Serif TC", "PMingLiU", serif;
+  --body: "Noto Sans TC", "PingFang TC", system-ui, sans-serif;
+
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:        #17181a;
+    --surface:   #212224;
+    --surface-2: #2a2b2d;
+    --ink:       #ece9e2;
+    --ink-soft:  #a7a39a;
+    --line:      rgba(236,233,226,0.12);
+    --accent:    #6fb3a3;
+    --accent-2:  #d1b872;
+    --accent-soft: rgba(111,179,163,0.16);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:        #17181a;
+  --surface:   #212224;
+  --surface-2: #2a2b2d;
+  --ink:       #ece9e2;
+  --ink-soft:  #a7a39a;
+  --line:      rgba(236,233,226,0.12);
+  --accent:    #6fb3a3;
+  --accent-2:  #d1b872;
+  --accent-soft: rgba(111,179,163,0.16);
+}
+
+*{box-sizing:border-box;}
+[hidden]{display:none !important;}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--body);
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+.corner-hex{
+  position:fixed; top:-60px; right:-60px;
+  width:260px; height:260px;
+  opacity:0.5; z-index:0; pointer-events:none;
+  color:var(--line);
+}
+@media (prefers-reduced-motion:no-preference){
+  .stage{ animation: rise .4s ease both; }
+  @keyframes rise{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+}
+
+.wrap{
+  position:relative; z-index:1;
+  max-width:560px; margin:0 auto;
+  padding-top: 36px;
+  padding-bottom: 56px;
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+  min-height:100svh;
+  display:flex; flex-direction:column;
+}
+
+.eyebrow{
+  font-family:var(--body); font-weight:700; font-size:13px;
+  letter-spacing:0.14em; text-transform:uppercase;
+  color:var(--accent);
+  margin:0 0 10px;
+}
+
+/* ---------- start ---------- */
+#start{ margin:auto 0; text-align:center; }
+#start h1{
+  font-family:var(--display); font-weight:900;
+  font-size:clamp(34px, 8vw, 46px);
+  line-height:1.25; margin:0 0 16px;
+  text-wrap:balance;
+}
+#start p.lede{
+  font-size:16px; line-height:1.75; color:var(--ink-soft);
+  margin:0 auto 32px; max-width:46ch;
+}
+.type-chips{
+  display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
+  margin-bottom:32px;
+}
+.type-chip{
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:13px; font-weight:600; color:var(--ink);
+  background:var(--surface-2); border:1px solid var(--line);
+  border-radius:999px; padding:7px 14px 7px 10px;
+}
+.type-chip svg{ width:15px; height:15px; color:var(--accent); flex:none; }
+.tag{
+  display:inline-flex; align-items:center; justify-content:center;
+  font-family:var(--body); font-weight:700; font-size:10.5px;
+  letter-spacing:0.02em; line-height:1; white-space:nowrap;
+  border-radius:999px; padding:3px 7px;
+}
+.tag-T{ background:var(--accent); color:var(--bg); }
+.tag-P{ background:var(--accent-2); color:var(--bg); }
+.tag-H{ background:transparent; color:var(--ink-soft); border:1px solid var(--line); }
+.btn-primary{
+  font-family:var(--body); font-weight:700; font-size:17px;
+  color:#fff; background:var(--ink);
+  border:none; border-radius:16px;
+  padding:16px 36px; cursor:pointer;
+}
+:root[data-theme="dark"] .btn-primary{ color:var(--bg); }
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .btn-primary{ color:var(--bg); }
+}
+.btn-primary:active{ transform:scale(0.98); }
+#start .meta{
+  margin-top:18px; font-size:13px; color:var(--ink-soft);
+}
+
+/* ---------- quiz ---------- */
+#quiz{ flex:1; display:flex; flex-direction:column; }
+.rail{
+  display:flex; align-items:center; gap:14px;
+  margin-bottom:26px;
+}
+.back-btn{
+  flex:none; width:38px; height:38px; border-radius:11px;
+  border:1px solid var(--line); background:var(--surface);
+  color:var(--ink-soft); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.back-btn svg{ width:18px; height:18px; }
+.back-btn:active{ transform:scale(0.95); }
+.rail-track{
+  flex:1; height:6px; border-radius:4px;
+  background:var(--line); overflow:hidden;
+}
+.rail-fill{
+  height:100%; border-radius:4px;
+  background:var(--accent);
+  transition:width .35s ease;
+}
+.rail-count{
+  font-variant-numeric:tabular-nums;
+  font-size:13px; font-weight:700; color:var(--ink-soft);
+  white-space:nowrap;
+}
+.q-title{
+  font-family:var(--display); font-weight:700;
+  font-size:clamp(22px,5.4vw,27px); line-height:1.45;
+  margin:0 0 22px;
+  text-wrap:balance;
+}
+.options{ display:flex; flex-direction:column; gap:10px; }
+.option{
+  text-align:left;
+  font-family:var(--body); font-size:15.5px; line-height:1.5; color:var(--ink);
+  background:var(--surface);
+  border:1px solid var(--line); border-radius:14px;
+  padding:16px 18px; cursor:pointer;
+  transition:border-color .15s ease, background .15s ease, transform .1s ease;
+}
+.option:hover{ border-color:var(--accent); }
+.option:active{ transform:scale(0.99); }
+.option.picked{
+  border-color:var(--accent);
+  background:var(--accent-soft);
+}
+
+/* ---------- result ---------- */
+.badge-row{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
+.badge{
+  display:inline-flex; align-items:center; gap:7px;
+  font-family:var(--body); font-weight:700; font-size:13.5px;
+}
+.badge.primary{
+  color:#fff; background:var(--ink);
+  border-radius:999px; padding:8px 16px 8px 10px;
+}
+:root[data-theme="dark"] .badge.primary{ color:var(--bg); }
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .badge.primary{ color:var(--bg); }
+}
+.badge.secondary{
+  color:var(--ink-soft); background:transparent;
+  border:1px solid var(--line);
+  border-radius:999px; padding:7px 15px 7px 9px;
+}
+.badge svg{ width:15px; height:15px; }
+.hero-icon-circle{
+  width:72px; height:72px; border-radius:50%;
+  background:var(--accent-soft); color:var(--accent);
+  display:flex; align-items:center; justify-content:center;
+  margin-bottom:16px;
+}
+.hero-icon-circle svg{ width:34px; height:34px; }
+
+.secondary-card{
+  background:var(--surface-2); border:1px solid var(--line);
+  border-radius:18px; padding:20px 20px 18px; margin-bottom:26px;
+}
+.secondary-head{ display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.mini-icon{
+  width:46px; height:46px; border-radius:50%; flex:none;
+  background:var(--surface); border:1px solid var(--line); color:var(--accent);
+  display:flex; align-items:center; justify-content:center;
+}
+.mini-icon svg{ width:22px; height:22px; }
+.secondary-card h3{
+  font-family:var(--display); font-weight:700; font-size:18px;
+  margin:0 0 2px;
+}
+.sec-tagline{ font-size:12.5px; color:var(--accent); font-weight:600; margin:0; }
+.secondary-card p#sec-desc{
+  font-size:14px; line-height:1.75; color:var(--ink-soft); margin:12px 0 0;
+}
+.trait-meta{ display:flex; flex-direction:column; gap:6px; margin:0 0 22px; }
+.trait-row{ display:flex; gap:10px; font-size:13.5px; line-height:1.5; }
+.trait-row .trait-label{
+  flex:none; width:44px; color:var(--ink-soft); font-weight:700;
+  font-size:12px; letter-spacing:0.04em; padding-top:1px;
+}
+.trait-row .trait-value{ color:var(--ink); }
+.sec-meta{ font-size:12.5px; color:var(--ink-soft); margin:8px 0 0; line-height:1.6; }
+
+#result h1{
+  font-family:var(--display); font-weight:900;
+  font-size:clamp(30px,8vw,42px); line-height:1.25;
+  margin:0 0 10px; text-wrap:balance;
+}
+#result .tagline{
+  font-size:16px; color:var(--accent); font-weight:700;
+  margin:0 0 20px;
+}
+#result .desc{
+  font-size:15.5px; line-height:1.85; color:var(--ink-soft);
+  margin:0 0 8px;
+}
+#result .desc.flavor{ margin-bottom:30px; }
+
+.spectrum-card{
+  background:var(--surface); border:1px solid var(--line);
+  border-radius:18px; padding:24px 20px 20px; margin-bottom:28px;
+}
+.spectrum-card h2{
+  font-family:var(--body); font-weight:700; font-size:13px;
+  letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-soft);
+  margin:0 0 4px;
+}
+.spectrum-card .hint{
+  font-size:12.5px; color:var(--ink-soft); margin:0 0 10px; opacity:0.85;
+}
+.radar-figure{ position:relative; width:100%; max-width:300px; aspect-ratio:1; margin:0 auto; }
+.radar-figure svg{ position:absolute; inset:0; width:100%; height:100%; }
+.radar-vertex{
+  position:absolute; transform:translate(-50%,-50%);
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  width:62px; text-align:center;
+}
+.radar-vertex svg{ width:16px; height:16px; color:var(--accent); flex:none; position:static; }
+.radar-vertex .rv-name{ font-size:11px; font-weight:700; color:var(--ink); line-height:1.2; }
+
+.attraction-card{
+  background:var(--surface-2); border:1px solid var(--line);
+  border-radius:18px; padding:22px 22px 20px; margin-bottom:28px;
+}
+.attraction-card h2{
+  font-family:var(--body); font-weight:700; font-size:13px;
+  letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-soft);
+  margin:0 0 12px;
+}
+.attraction-card p{
+  font-size:15px; line-height:1.85; color:var(--ink); margin:0;
+}
+
+#share-capture{ background:var(--bg); }
+
+/* ---------- dedicated share-card (off-screen, fixed 1080x1920 Story
+   format) — captured by html2canvas for the download button instead of
+   screenshotting the on-page result flow, so the exported image is always
+   a clean, fixed-ratio composition rather than a long stretched strip ---------- */
+.share-card-fixed{
+  position:absolute; left:-10000px; top:0;
+  width:1080px; height:1920px;
+  background:var(--bg); color:var(--ink);
+  overflow:hidden;
+}
+.sc-inner{
+  width:100%; height:100%; box-sizing:border-box;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:90px 96px; text-align:center; gap:34px;
+}
+.sc-eyebrow{
+  font-family:var(--body); font-weight:700; font-size:26px;
+  letter-spacing:0.14em; text-transform:uppercase; color:var(--accent);
+}
+.sc-hero{ display:flex; flex-direction:column; align-items:center; gap:14px; }
+.sc-hero-icon{
+  width:160px; height:160px; border-radius:50%;
+  background:var(--accent-soft); color:var(--accent);
+  display:flex; align-items:center; justify-content:center;
+}
+.sc-hero-icon svg{ width:76px; height:76px; }
+.sc-name{ font-family:var(--display); font-weight:900; font-size:68px; line-height:1.2; }
+.sc-tagline{ font-family:var(--body); font-size:30px; color:var(--ink-soft); line-height:1.5; max-width:800px; }
+.sc-badges{ display:flex; gap:16px; flex-wrap:wrap; justify-content:center; }
+.sc-badge{
+  display:inline-flex; align-items:center; gap:10px;
+  font-family:var(--body); font-weight:800; font-size:24px; color:var(--ink);
+  background:var(--surface); border:1.5px solid var(--line);
+  border-radius:999px; padding:12px 26px 12px 14px;
+}
+.sc-badge.primary{ border-color:var(--accent); }
+.sc-badge .sc-badge-ic{
+  width:36px; height:36px; border-radius:50%;
+  background:var(--accent-soft); color:var(--accent);
+  display:flex; align-items:center; justify-content:center;
+}
+.sc-badge .sc-badge-ic svg{ width:18px; height:18px; }
+.sc-badge .tag{ font-size:16px; padding:4px 11px; margin-left:4px; }
+.sc-chart{ position:relative; width:700px; height:700px; flex:none; }
+.sc-chart svg{ position:absolute; inset:0; width:100%; height:100%; }
+.sc-vertex{
+  position:absolute; transform:translate(-50%,-50%);
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  width:150px;
+}
+.sc-vertex svg{ width:24px; height:24px; color:var(--accent); position:static; }
+.sc-vertex .sc-vname{ font-size:22px; font-weight:800; color:var(--ink); line-height:1.25; }
+.sc-vertex.sc-vertex-primary .sc-vname{ color:var(--accent); font-size:24px; }
+.sc-traits{
+  background:var(--surface); border:1px solid var(--line); border-radius:24px;
+  padding:28px 36px; font-size:26px; line-height:1.8; color:var(--ink);
+  max-width:820px;
+}
+.sc-traits b{ color:var(--accent); }
+.sc-footer{
+  font-family:var(--body); font-weight:800; font-size:28px; color:var(--ink);
+  background:var(--surface-2); border-radius:999px; padding:20px 40px;
+}
+
+.share-caption{
+  text-align:center; font-size:12px; color:var(--ink-soft);
+  margin-top:8px; letter-spacing:0.02em;
+}
+.support-card{
+  margin-top:28px; padding-top:22px; border-top:1px solid var(--line);
+  display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+}
+.support-card p{ font-size:13.5px; color:var(--ink-soft); margin:0; }
+#download-btn[data-busy="true"]{ opacity:0.6; pointer-events:none; }
+.result-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+.share-invite{
+  margin-top:24px; padding-top:22px; border-top:1px solid var(--line);
+  display:flex; flex-direction:column; align-items:flex-start; gap:12px;
+}
+.share-invite p{ font-size:14.5px; font-weight:600; color:var(--ink); margin:0; }
+.btn-ghost{
+  font-family:var(--body); font-weight:700; font-size:14.5px;
+  color:var(--ink); background:transparent;
+  border:1.5px solid var(--line); border-radius:14px;
+  padding:13px 22px; cursor:pointer;
+}
+.btn-ghost:active{ transform:scale(0.98); }
+.copied{ font-size:13px; color:var(--ink-soft); margin-top:10px; height:16px; }
+
+footer{
+  text-align:center; font-size:12.5px; color:var(--ink-soft);
+  margin-top:40px;
+}
+</style>
+
+<svg class="corner-hex" viewBox="0 0 200 200" fill="none" aria-hidden="true">
+  <polygon points="100,10 182,55 182,145 100,190 18,145 18,55" stroke="currentColor" stroke-width="1.5"/>
+</svg>
+
+<div class="wrap">
+
+  <section id="start" class="stage">
+    <div class="eyebrow">女同人格測驗 · 12 題</div>
+    <h1>你是哪一種<br>戀愛人設？</h1>
+    <p class="lede">從約會風格、吵架反應到穿搭喜好，12 個情境題，看看你在感情裡比較靠近太陽系帥T、安靜系鐵T、奶狗系軟T、優雅系天鵝P、軟萌系兔子P，還是自由系變色龍——結果會依你的主型與副型組合，給出更多樣的描述。</p>
+    <div class="type-chips" id="type-chips"></div>
+    <button class="btn-primary" id="start-btn">開始測驗</button>
+    <div class="meta">大約 2 分鐘 · 可返回修改答案 · 測完可重測</div>
+  </section>
+
+  <section id="quiz" class="stage" hidden>
+    <div class="rail">
+      <button class="back-btn" id="back-btn" type="button" aria-label="上一題">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div class="rail-track"><div class="rail-fill" id="rail-fill"></div></div>
+      <div class="rail-count" id="rail-count">1 / 12</div>
+    </div>
+    <h2 class="q-title" id="q-title"></h2>
+    <div class="options" id="q-options"></div>
+  </section>
+
+  <section id="result" class="stage" hidden>
+    <div id="share-capture">
+      <div class="eyebrow">測驗結果</div>
+      <div class="badge-row" id="r-badges"></div>
+      <div class="hero-icon" id="hero-icon"></div>
+      <h1 id="r-name"></h1>
+      <p class="tagline" id="r-tagline"></p>
+      <div class="trait-meta" id="r-traits"></div>
+      <p class="desc" id="r-desc"></p>
+      <p class="desc flavor" id="r-flavor"></p>
+
+      <div class="secondary-card" id="secondary-card" hidden>
+        <h2 style="font-family:var(--body);font-weight:700;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 14px;">副型介紹</h2>
+        <div class="secondary-head">
+          <span class="mini-icon" id="sec-icon"></span>
+          <div>
+            <h3 id="sec-name"></h3>
+            <p class="sec-tagline" id="sec-tagline"></p>
+          </div>
+        </div>
+        <p id="sec-desc"></p>
+        <p class="sec-meta" id="sec-meta"></p>
+      </div>
+
+      <div class="spectrum-card">
+        <h2>特質光譜</h2>
+        <p class="hint">形狀代表六個向度的相對強弱，不是精確分數</p>
+        <div class="radar-figure" id="radar"></div>
+      </div>
+
+      <div class="attraction-card">
+        <h2>心動方向</h2>
+        <p id="r-attract"></p>
+      </div>
+
+      <div class="share-caption">女同人格測驗・你也來測測看</div>
+    </div>
+
+    <div class="result-actions">
+      <button class="btn-primary" id="retake-btn">重新測驗</button>
+      <button class="btn-ghost" id="download-btn">下載結果圖</button>
+    </div>
+    <div class="copied" id="dl-msg"></div>
+
+    <div class="share-invite">
+      <p>趕快傳給你的朋友一起來玩吧！</p>
+      <button class="btn-ghost" id="copy-url-btn">複製網址</button>
+    </div>
+    <div class="copied" id="url-msg"></div>
+
+    <div class="support-card" id="support-card" hidden>
+      <p>如果喜歡這個測驗，想請我喝杯飲料也可以</p>
+      <a class="btn-ghost" id="support-link" href="#" target="_blank" rel="noopener">贊助一下</a>
+    </div>
+  </section>
+
+  <footer>用你平常的直覺作答，結果純屬娛樂，認真你就輸了。</footer>
+</div>
+
+<div id="share-card" class="share-card-fixed" aria-hidden="true">
+  <div class="sc-inner">
+    <div class="sc-eyebrow">女同人格測驗 ・ 測驗結果</div>
+    <div class="sc-hero">
+      <div class="sc-hero-icon" id="sc-icon"></div>
+      <div class="sc-name" id="sc-name"></div>
+      <div class="sc-tagline" id="sc-tagline"></div>
+    </div>
+    <div class="sc-badges" id="sc-badges"></div>
+    <div class="sc-chart" id="sc-chart"></div>
+    <div class="sc-traits" id="sc-traits"></div>
+    <div class="sc-footer">女同人格測驗 ・ 你也來測測看</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+(function(){
+
+var ICONS = {
+  sun:   '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v3M12 18.5v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2.5 12h3M18.5 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
+  iron:  '<path d="M20 14.6A8.4 8.4 0 1 1 9.4 4a7 7 0 0 0 10.6 10.6z"/>',
+  pup:   '<circle cx="12" cy="15.3" r="3.1"/><circle cx="6.6" cy="9.2" r="1.5"/><circle cx="10.2" cy="6.2" r="1.5"/><circle cx="13.8" cy="6.2" r="1.5"/><circle cx="17.4" cy="9.2" r="1.5"/>',
+  swan:  '<path d="M19 5c-5 0-13.5 2-13.5 13.5"/><path d="M19 5c0 5-2.5 13.5-13.5 13.5"/><path d="M4.2 19.8l3-3"/>',
+  bunny: '<path d="M9.3 11c-1.6-3-2.1-6.6-.6-8.1S12 3 12 7.2"/><path d="M14.7 11c1.6-3 2.1-6.6.6-8.1S12 3 12 7.2"/><circle cx="12" cy="14.8" r="5"/><circle cx="10" cy="14.3" r="0.65" fill="currentColor"/><circle cx="14" cy="14.3" r="0.65" fill="currentColor"/>',
+  free:  '<path d="M8 15a3 3 0 1 1 0-6c2 0 3 1.6 4 3s2 3 4 3a3 3 0 1 0 0-6c-2 0-3 1.6-4 3s-2 3-4 3z"/>'
+};
+function iconSvg(type, size){
+  size = size || 16;
+  return '<svg viewBox="0 0 24 24" width="'+size+'" height="'+size+'" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+ICONS[type]+'</svg>';
+}
+
+var TPH = { sun:"T", iron:"T", pup:"T", swan:"P", bunny:"P", free:"不分 / H" };
+function tagHtml(type){
+  var g = TPH[type];
+  var cls = g === "T" ? "tag-T" : (g === "P" ? "tag-P" : "tag-H");
+  return '<span class="tag ' + cls + '">' + g + '</span>';
+}
+
+var ORDER = ["sun","iron","pup","swan","bunny","free"];
+
+var QUESTIONS = [
+  { q: "需要做決定的時候，你通常會：", opts: [
+    ["很快做出決定，然後說服大家一起走","sun"],
+    ["自己先想清楚，才把決定說出來","iron"],
+    ["想先問問大家的意見，一起討論","pup"],
+    ["把各種選項都想過一輪，再選一個","swan"],
+    ["比較依賴別人先做決定","bunny"],
+    ["看當下狀況，沒有固定的做法","free"],
+  ]},
+  { q: "安排一場約會時，你通常會：", opts: [
+    ["提早排好行程，直接跟對方說「到時候這樣走」","sun"],
+    ["想法已經有了，但要過一段時間才會說出來","iron"],
+    ["傳好幾個連結和想法，想一起討論再決定","pup"],
+    ["選好餐廳、提前訂位，把細節都準備好","swan"],
+    ["問對方想去哪，自己先不主動提意見","bunny"],
+    ["看當下心情決定，常常前一天才確定","free"],
+  ]},
+  { q: "在朋友聚會裡，你通常會：", opts: [
+    ["負責安排時間地點，主動揪人出來","sun"],
+    ["話不多，但朋友有事情都會先想到你","iron"],
+    ["很熱絡地帶動氣氛，讓大家聊起來","pup"],
+    ["比較安靜觀察，想講話才開口","swan"],
+    ["心情起伏會直接表現在臉上","bunny"],
+    ["依場合調整自己，沒有固定狀態","free"],
+  ]},
+  { q: "團隊合作時，你通常會扮演的角色是：", opts: [
+    ["主動帶頭，分配工作給大家","sun"],
+    ["把自己負責的部分做到最好，不太需要盯","iron"],
+    ["負責炒熱氣氛，讓團隊溝通比較順","pup"],
+    ["負責規劃流程，確保進度不出差錯","swan"],
+    ["比較習慣配合別人的安排","bunny"],
+    ["看專案需要，角色常常不一樣","free"],
+  ]},
+  { q: "吵架之後，你通常會：", opts: [
+    ["先自己想清楚，整理好想法才開口","iron"],
+    ["很快傳訊息說明自己的想法，想趕快把話說開","pup"],
+    ["先開口，把話題往下一步推進","sun"],
+    ["比較少主動開口，等對方先聯絡","bunny"],
+    ["把問題一條一條列出來，討論怎麼處理","swan"],
+    ["看情況，有時候先開口，有時候等對方","free"],
+  ]},
+  { q: "週末你比較常做的事是：", opts: [
+    ["跟朋友出去運動，或到處走走","sun"],
+    ["自己一個人在家休息","iron"],
+    ["跟喜歡的人待在一起，做什麼都可以","pup"],
+    ["去看展覽，或找一間店坐著","swan"],
+    ["在家看劇，不太想出門","bunny"],
+    ["看當天心情再決定","free"],
+  ]},
+  { q: "你平常挑衣服、準備出門的方式比較像：", opts: [
+    ["很快選好就出門，不會花太多時間","sun"],
+    ["固定幾套常穿的，不太花心思搭配","iron"],
+    ["喜歡嘗試新穿法，常常換風格","pup"],
+    ["會花時間搭配整體，講究細節","swan"],
+    ["常常猶豫很久，需要別人幫忙挑","bunny"],
+    ["看心情決定，沒有固定習慣","free"],
+  ]},
+  { q: "你覺得生活裡比較重要的是：", opts: [
+    ["能保護、照顧在乎的人","sun"],
+    ["能保有自己的空間和步調","iron"],
+    ["身邊有熱絡、真誠的關係","pup"],
+    ["生活有品質、有規劃","swan"],
+    ["情感上被好好對待","bunny"],
+    ["不被框架綁住，能自由選擇","free"],
+  ]},
+  { q: "工作上遇到問題時，你通常會：", opts: [
+    ["直接去找人討論，當面解決","sun"],
+    ["自己先查資料、想辦法，解決不了才問人","iron"],
+    ["馬上在群組裡問，想趕快把問題解決掉","pup"],
+    ["整理好問題的來龍去脈，再找對的人問","swan"],
+    ["會有點緊張，需要時間才敢開口求助","bunny"],
+    ["看問題大小決定要不要找人幫忙","free"],
+  ]},
+  { q: "朋友找你訴苦時，你通常會：", opts: [
+    ["直接給建議，想幫忙解決問題","sun"],
+    ["安靜聽，不太會主動說太多話","iron"],
+    ["陪著一起罵、一起發洩情緒","pup"],
+    ["冷靜分析狀況，幫忙想解決辦法","swan"],
+    ["會被朋友的情緒影響，跟著難過","bunny"],
+    ["看朋友需要什麼，陪聊或給建議都可以","free"],
+  ]},
+  { q: "在感情裡，你比較常：", opts: [
+    ["先開口告白，或先牽對方的手","sun"],
+    ["比較少說，但會用行動讓對方知道","iron"],
+    ["比較常先說出「我喜歡你」這類的話","pup"],
+    ["等到適合的時機再表白","swan"],
+    ["用眼神或小動作暗示，不會直接說","bunny"],
+    ["看情況，沒有固定模式","free"],
+  ]},
+  { q: "遇到壓力很大的事情時，你通常會：", opts: [
+    ["先動手處理，邊做邊想辦法","sun"],
+    ["自己一個人消化，不太想說","iron"],
+    ["找人聊一聊，說出來比較舒服","pup"],
+    ["列清單、想計畫，讓自己有掌控感","swan"],
+    ["情緒會先受影響，需要一點時間緩一緩","bunny"],
+    ["看情況應對，沒有固定的處理方式","free"],
+  ]},
+];
+
+var RESULTS = {
+  sun: {
+    name: "太陽系帥T",
+    tagline: "全場的靠山，走到哪都自帶安全感",
+    desc: "你是那種一進到關係裡就會自動扛起責任的人——行程你來排、重的東西你來拿，對方不開心你會第一個注意到。朋友都說跟你在一起很放心，因為你天生就是會照顧人的類型。你喜歡主動、喜歡掌握節奏，但也別忘了偶爾讓自己被照顧一下，你值得。",
+    traits: "果斷、主動、重承諾",
+    style: "俐落實穿，不喜歡太花俏的款式"
+  },
+  iron: {
+    name: "安靜系鐵T",
+    tagline: "外冷內熱，話少但每個行動都是愛",
+    desc: "你不太擅長說甜言蜜語，但你會記得對方的每個小習慣，默默把對方的喜好放在心上。熟悉你的人都知道，你的高冷只是保護色，一旦打開心房，你會是最死忠、最可靠的那個人。你的愛不喧嘩，卻很扎實。",
+    traits: "冷靜、獨立、重細節",
+    style: "偏好簡單耐看的單品，不太追流行"
+  },
+  pup: {
+    name: "奶狗系軟T",
+    tagline: "精力無限的開心果，愛就要大聲說出來",
+    desc: "你是關係裡的氣氛擔當，喜歡黏著喜歡的人，情感表達直接又熱烈，想到什麼就說什麼。你的真誠和熱情很有感染力，讓人很難不被你圈粉。偶爾會有點粗線條，但正是這份純粹讓人安心。",
+    traits: "熱情、直率、精力旺盛",
+    style: "舒適自在最重要，活動方便優先"
+  },
+  swan: {
+    name: "優雅系天鵝P",
+    tagline: "氣場與質感兼具的生活掌舵者",
+    desc: "你對生活很有自己的品味與節奏，不管是約會地點還是日常小細節，你都希望是有質感的。你不吵不鬧，但很清楚自己要什麼，也很懂得照顧兩個人的生活步調。跟你在一起，日子會過得很有儀式感。",
+    traits: "講究、從容、有主見",
+    style: "在意質感和整體搭配，偏好有品味的單品"
+  },
+  bunny: {
+    name: "軟萌系兔子P",
+    tagline: "情緒最真實、最讓人想保護的那一種",
+    desc: "你很容易因為一點小事就臉紅心跳，喜歡就是喜歡，藏不住也不想藏。你的黏人不是依賴，是因為你很享受被愛、也很願意付出愛的感覺。你的可愛是武器，連吵架都讓人捨不得凶你。",
+    traits: "敏感、真誠、情緒直接",
+    style: "喜歡柔和舒服的款式，重視穿起來的心情"
+  },
+  free: {
+    name: "自由系變色龍",
+    tagline: "不被標籤定義，相處最自在的那一種",
+    desc: "你不喜歡被貼標籤，今天可以很man、明天也可以很少女，全看當下的心情和對象。你最大的魅力就是彈性與自在——跟你在一起不需要演誰，做自己就好。你讓「T」跟「P」這種分類在你身上失去意義。",
+    traits: "彈性、隨性、不受拘束",
+    style: "風格常常變化，看心情決定今天想當誰"
+  }
+};
+
+/* secondary-flavor sentences: appended regardless of which primary they
+   pair with, so primary x secondary = 6 x 5 = 30 distinct combined reads */
+var FLAVOR = {
+  sun:   "而且骨子裡藏著不小的行動力，想到什麼就衝去做，很少讓念頭停在原地。",
+  iron:  "但你心裡其實藏著一點安靜與獨立，不太喜歡把情緒攤在陽光下給人看。",
+  pup:   "也藏著一點黏人的奶狗魂，熟了之後特別愛撒嬌、愛說心裡話。",
+  swan:  "同時對生活品質也有堅持，小細節馬虎不得，這點連自己都沒發現。",
+  bunny: "心裡也住著一個容易害羞臉紅的小朋友，只是不常被看見。",
+  free:  "其實沒那麼喜歡被定義，偶爾也想自由切換，不想永遠照同一套劇本走。"
+};
+var PURE_LINE = "這次你的選擇相當集中，幾乎都指向同一種特質——你是很純粹的那一型。";
+
+var ATTRACTION = {
+  sun: "你容易被情緒穩定、不需要你時時刻刻緊張兮兮的人吸引——能跟上你步調、相處起來不手忙腳亂的對象，最讓你安心。而你給人的安全感，也容易吸引正在找一個可以依靠的人，或是欣賞你做事果斷、說到做到的對象。",
+  iron: "你容易被願意花時間、不急著把你看穿的人吸引——比起熱情直接，你更喜歡相處舒服、不會一直追問你在想什麼的對象。你外冷內熱的反差，也常常吸引特別有耐心、喜歡慢慢了解一個人的人，他們往往是看久了才發現你有多可靠。",
+  pup: "你容易被反應直接、不把情緒憋在心裡的人吸引——跟你一樣坦率的對象，相處起來最沒有壓力。你的熱情和真誠也很容易吸引平常比較內斂、需要有人主動拉近距離的人，他們會很享受被你這樣直接喜歡著。",
+  swan: "你容易被有自己節奏、不會打亂你生活步調的人吸引——比起黏得很緊，你更欣賞懂得保留空間感的對象。你從容的氣場，也常常吸引喜歡被好好照顧、同樣在意生活質感的人，他們會被你安排兩人生活的方式打動。",
+  bunny: "你容易被讓你覺得安心、願意主動靠近你的人吸引——比起自己先踏出第一步，你更喜歡被對方溫柔地帶著走。你直接的情緒反應，也容易吸引喜歡照顧人、看到你害羞就很想靠近你的對象。",
+  free: "你容易被不急著把你定義清楚的人吸引——比起馬上要你表態「到底是什麼」，你更喜歡可以慢慢磨合、彼此都保有彈性的關係。你的自在和不按牌理出牌，也容易吸引討厭被規則綁住、同樣希望關係裡留點空間的人。"
+};
+
+/* set this to a real donation link (Ko-fi / Buy Me a Coffee / PayPal.me /
+   收款連結…) to show the support button; leave empty to keep it hidden */
+var SUPPORT_URL = "";
+(function(){
+  if (SUPPORT_URL){
+    document.getElementById('support-link').href = SUPPORT_URL;
+    document.getElementById('support-card').hidden = false;
+  }
+})();
+
+var state = { i: 0, answers: new Array(QUESTIONS.length).fill(null) };
+
+var startEl = document.getElementById('start');
+var quizEl = document.getElementById('quiz');
+var resultEl = document.getElementById('result');
+
+/* start chips: one per base type, with icon + name + T/P/H tag */
+(function(){
+  var wrap = document.getElementById('type-chips');
+  ORDER.forEach(function(k){
+    var el = document.createElement('span');
+    el.className = 'type-chip';
+    el.innerHTML = iconSvg(k, 14) + '<span>' + RESULTS[k].name.replace(/系.*/, '') + '</span>' + tagHtml(k);
+    wrap.appendChild(el);
+  });
+})();
+
+document.getElementById('start-btn').addEventListener('click', function(){
+  startEl.hidden = true;
+  quizEl.hidden = false;
+  renderQuestion();
+});
+
+document.getElementById('back-btn').addEventListener('click', function(){
+  if (state.i === 0){
+    quizEl.hidden = true;
+    startEl.hidden = false;
+    return;
+  }
+  state.i -= 1;
+  renderQuestion();
+});
+
+function renderQuestion(){
+  var q = QUESTIONS[state.i];
+  document.getElementById('rail-count').textContent = (state.i+1) + ' / ' + QUESTIONS.length;
+  document.getElementById('rail-fill').style.width = ((state.i)/QUESTIONS.length*100) + '%';
+  document.getElementById('q-title').textContent = q.q;
+  var optsEl = document.getElementById('q-options');
+  optsEl.innerHTML = '';
+  var prevAnswer = state.answers[state.i];
+  q.opts.forEach(function(opt){
+    var btn = document.createElement('button');
+    btn.className = 'option' + (prevAnswer === opt[1] ? ' picked' : '');
+    btn.type = 'button';
+    btn.textContent = opt[0];
+    btn.addEventListener('click', function(){ pick(opt[1], btn); });
+    optsEl.appendChild(btn);
+  });
+  quizEl.classList.remove('stage');
+  void quizEl.offsetWidth;
+  quizEl.classList.add('stage');
+}
+
+function pick(type, btn){
+  var all = document.querySelectorAll('#q-options .option');
+  all.forEach(function(b){ b.disabled = true; b.classList.remove('picked'); });
+  btn.classList.add('picked');
+  state.answers[state.i] = type;
+  setTimeout(function(){
+    state.i += 1;
+    if (state.i < QUESTIONS.length){
+      renderQuestion();
+    } else {
+      showResult();
+    }
+  }, 220);
+}
+
+function computeScores(){
+  var scores = {sun:0,iron:0,pup:0,swan:0,bunny:0,free:0};
+  state.answers.forEach(function(t){ if (t) scores[t] += 1; });
+  return scores;
+}
+
+function drawRadar(scores){
+  var size = 280, cx = size/2, cy = size/2, R = 76;
+  var maxScore = Math.max.apply(null, ORDER.map(function(k){ return scores[k]; })) || 1;
+  var pts = ORDER.map(function(k, idx){
+    var angle = (-90 + idx*60) * Math.PI/180;
+    var v = scores[k] / maxScore;
+    var r = 14 + v * (R-14);
+    return [cx + r*Math.cos(angle), cy + r*Math.sin(angle)];
+  });
+  var poly = pts.map(function(p){ return p[0].toFixed(1)+','+p[1].toFixed(1); }).join(' ');
+
+  function ringPts(frac){
+    return ORDER.map(function(k, idx){
+      var angle = (-90 + idx*60) * Math.PI/180;
+      var r = 14 + frac * (R-14);
+      return (cx + r*Math.cos(angle)).toFixed(1)+','+(cy + r*Math.sin(angle)).toFixed(1);
+    }).join(' ');
+  }
+  function ring(frac){
+    return '<polygon points="'+ringPts(frac)+'" fill="none" stroke="var(--line)" stroke-width="1"/>';
+  }
+
+  var spokes = ORDER.map(function(k, idx){
+    var angle = (-90 + idx*60) * Math.PI/180;
+    var x = cx + R*Math.cos(angle), y = cy + R*Math.sin(angle);
+    return '<line x1="'+cx+'" y1="'+cy+'" x2="'+x.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="var(--line)" stroke-width="1"/>';
+  }).join('');
+
+  var rings = [0.33,0.66,1].map(ring).join('');
+
+  var svg = '<svg viewBox="0 0 '+size+' '+size+'">' +
+    rings + spokes +
+    '<polygon points="'+poly+'" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>' +
+    pts.map(function(p){ return '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="3" fill="var(--accent)"/>'; }).join('') +
+    '</svg>';
+
+  var labelR = 118;
+  var vertices = ORDER.map(function(k, idx){
+    var angle = (-90 + idx*60) * Math.PI/180;
+    var x = cx + labelR*Math.cos(angle), y = cy + labelR*Math.sin(angle);
+    var left = (x/size*100).toFixed(2) + '%';
+    var top = (y/size*100).toFixed(2) + '%';
+    return '<div class="radar-vertex" style="left:'+left+';top:'+top+'">' +
+      iconSvg(k,16) +
+      '<span class="rv-name">' + RESULTS[k].name.replace(/系.*/, '') + '</span>' +
+      tagHtml(k) +
+      '</div>';
+  }).join('');
+
+  document.getElementById('radar').innerHTML = svg + vertices;
+}
+
+/* bigger radar for the dedicated 1080x1920 share card: same math, larger
+   canvas + bolder primary-vertex highlight so it still reads at a glance
+   inside an Instagram Story */
+function drawShareRadar(scores, primary){
+  var size = 700, cx = size/2, cy = size/2, R = 230;
+  var maxScore = Math.max.apply(null, ORDER.map(function(k){ return scores[k]; })) || 1;
+  var pts = ORDER.map(function(k, idx){
+    var angle = (-90 + idx*60) * Math.PI/180;
+    var v = scores[k] / maxScore;
+    var r = 36 + v * (R-36);
+    return [cx + r*Math.cos(angle), cy + r*Math.sin(angle)];
+  });
+  var poly = pts.map(function(p){ return p[0].toFixed(1)+','+p[1].toFixed(1); }).join(' ');
+
+  function ringPts(frac){
+    return ORDER.map(function(k, idx){
+      var angle = (-90 + idx*60) * Math.PI/180;
+      var r = 36 + frac * (R-36);
+      return (cx + r*Math.cos(angle)).toFixed(1)+','+(cy + r*Math.sin(angle)).toFixed(1);
+    }).join(' ');
+  }
+  function ring(frac){
+    return '<polygon points="'+ringPts(frac)+'" fill="none" stroke="var(--line)" stroke-width="2"/>';
+  }
+
+  var spokes = ORDER.map(function(k, idx){
+    var angle = (-90 + idx*60) * Math.PI/180;
+    var x = cx + R*Math.cos(angle), y = cy + R*Math.sin(angle);
+    return '<line x1="'+cx+'" y1="'+cy+'" x2="'+x.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="var(--line)" stroke-width="2"/>';
+  }).join('');
+
+  var rings = [0.33,0.66,1].map(ring).join('');
+  var dots = pts.map(function(p, idx){
+    var isP = ORDER[idx] === primary;
+    return '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+(isP?9:6)+'" fill="var(--accent)"/>';
+  }).join('');
+
+  var svg = '<svg viewBox="0 0 '+size+' '+size+'">' + rings + spokes +
+    '<polygon points="'+poly+'" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="4" stroke-linejoin="round"/>' +
+    dots + '</svg>';
+
+  var labelR = R + 70;
+  var vertices = ORDER.map(function(k, idx){
+    var angle = (-90 + idx*60) * Math.PI/180;
+    var x = cx + labelR*Math.cos(angle), y = cy + labelR*Math.sin(angle);
+    var left = (x/size*100).toFixed(2) + '%';
+    var top = (y/size*100).toFixed(2) + '%';
+    var isP = k === primary;
+    return '<div class="sc-vertex' + (isP ? ' sc-vertex-primary' : '') + '" style="left:'+left+';top:'+top+'">' +
+      iconSvg(k,24) +
+      '<span class="sc-vname">' + RESULTS[k].name + '</span>' +
+      tagHtml(k) +
+      '</div>';
+  }).join('');
+
+  document.getElementById('sc-chart').innerHTML = svg + vertices;
+}
+
+/* populate the off-screen share card right before capture, from the same
+   primary/secondary/scores/r the on-page result already computed */
+function buildShareCard(primary, secondary, scores, r){
+  document.getElementById('sc-icon').innerHTML = iconSvg(primary, 76);
+  document.getElementById('sc-name').textContent = r.name;
+  document.getElementById('sc-tagline').textContent = r.tagline;
+
+  document.getElementById('sc-badges').innerHTML =
+    '<span class="sc-badge primary"><span class="sc-badge-ic">' + iconSvg(primary,18) + '</span>主型・' + r.name + tagHtml(primary) + '</span>' +
+    (scores[secondary] > 0
+      ? '<span class="sc-badge"><span class="sc-badge-ic">' + iconSvg(secondary,18) + '</span>副型・' + RESULTS[secondary].name + tagHtml(secondary) + '</span>'
+      : '');
+
+  document.getElementById('sc-traits').innerHTML =
+    '<b>性格關鍵字：</b>' + r.traits + '<br><b>風格傾向：</b>' + r.style;
+
+  drawShareRadar(scores, primary);
+}
+
+function showResult(){
+  quizEl.hidden = true;
+  resultEl.hidden = false;
+  resultEl.classList.remove('stage');
+  void resultEl.offsetWidth;
+  resultEl.classList.add('stage');
+
+  var scores = computeScores();
+  var ranked = ORDER.slice().sort(function(a,b){ return scores[b]-scores[a]; });
+  var primary = ranked[0];
+  var secondary = ranked[1];
+  var r = RESULTS[primary];
+
+  var badgesEl = document.getElementById('r-badges');
+  badgesEl.innerHTML =
+    '<span class="badge primary">' + iconSvg(primary,15) + '<span>主型・' + r.name + '</span>' + tagHtml(primary) + '</span>' +
+    (scores[secondary] > 0
+      ? '<span class="badge secondary">' + iconSvg(secondary,15) + '<span>副型・' + RESULTS[secondary].name + '</span>' + tagHtml(secondary) + '</span>'
+      : '');
+
+  document.getElementById('hero-icon').innerHTML = '<span class="hero-icon-circle">' + iconSvg(primary,34) + '</span>';
+  document.getElementById('r-name').textContent = r.name;
+  document.getElementById('r-tagline').textContent = r.tagline;
+  document.getElementById('r-traits').innerHTML =
+    '<div class="trait-row"><span class="trait-label">性格</span><span class="trait-value">' + r.traits + '</span></div>' +
+    '<div class="trait-row"><span class="trait-label">風格</span><span class="trait-value">' + r.style + '</span></div>';
+  document.getElementById('r-desc').textContent = r.desc;
+  document.getElementById('r-flavor').textContent = scores[secondary] > 0 ? FLAVOR[secondary] : PURE_LINE;
+  document.getElementById('r-attract').textContent = ATTRACTION[primary];
+
+  var secCard = document.getElementById('secondary-card');
+  if (scores[secondary] > 0){
+    var rs = RESULTS[secondary];
+    document.getElementById('sec-icon').innerHTML = iconSvg(secondary,22);
+    document.getElementById('sec-name').textContent = rs.name;
+    document.getElementById('sec-tagline').textContent = rs.tagline;
+    document.getElementById('sec-desc').textContent = rs.desc;
+    document.getElementById('sec-meta').textContent = '性格：' + rs.traits + '　風格：' + rs.style;
+    secCard.hidden = false;
+  } else {
+    secCard.hidden = true;
+  }
+
+  drawRadar(scores);
+
+  document.getElementById('download-btn').onclick = function(){
+    var btn = this;
+    var msg = document.getElementById('dl-msg');
+    if (typeof html2canvas !== 'function'){
+      msg.textContent = '圖片功能載入失敗，請重新整理後再試';
+      return;
+    }
+    btn.setAttribute('data-busy','true');
+    msg.textContent = '圖片產生中...';
+    buildShareCard(primary, secondary, scores, r);
+    var target = document.getElementById('share-card');
+    var bg = getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#ffffff';
+    html2canvas(target, { backgroundColor: bg, scale: 2, useCORS: true, width: 1080, height: 1920 }).then(function(canvas){
+      canvas.toBlob(function(blob){
+        btn.removeAttribute('data-busy');
+        if (!blob){ msg.textContent = '圖片產生失敗，請再試一次'; return; }
+        if (!window.claude || typeof window.claude.use !== 'function'){
+          msg.textContent = '此檢視環境不支援下載，請改用截圖';
+          return;
+        }
+        window.claude.use('downloads').then(function(downloads){
+          if (!downloads){
+            msg.textContent = '此檢視環境不支援下載，請改用截圖';
+            return;
+          }
+          var fname = '女同人格測驗-' + r.name + '-限動.png';
+          downloads.save({ filename: fname, data: blob }).then(function(){
+            msg.textContent = '已儲存';
+          }).catch(function(err){
+            if (err && err.code === 'declined'){ msg.textContent = ''; }
+            else { msg.textContent = '下載未完成，請再試一次'; }
+          });
+        });
+      }, 'image/png');
+    }).catch(function(){
+      btn.removeAttribute('data-busy');
+      msg.textContent = '圖片產生失敗，請再試一次';
+    });
+  };
+
+  document.getElementById('copy-url-btn').onclick = function(){
+    var url = location.href;
+    var msg = document.getElementById('url-msg');
+    function done(ok){ msg.textContent = ok ? '已複製網址，傳給朋友讓他們也測測看' : '複製失敗，請手動複製網址列'; }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(function(){ done(true); }).catch(function(){ done(false); });
+    } else {
+      done(false);
+    }
+  };
+}
+
+document.getElementById('retake-btn').addEventListener('click', function(){
+  state = { i: 0, answers: new Array(QUESTIONS.length).fill(null) };
+  document.getElementById('dl-msg').textContent = '';
+  document.getElementById('url-msg').textContent = '';
+  resultEl.hidden = true;
+  quizEl.hidden = false;
+  renderQuestion();
+});
+
+})();
+</script>
